@@ -178,3 +178,6 @@ int _execve(const uint8_t *name, uint8_t * const *argv, uint8_t * const *env)
 	return -1;
 }
 
+void check_failed(uint8_t *file, uint32_t line) {
+
+}
