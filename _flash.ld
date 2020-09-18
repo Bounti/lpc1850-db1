@@ -23,7 +23,7 @@ ENTRY(Reset_Handler)
 MEMORY
 {
 FLASH (rx)     : ORIGIN = 0x1c000000, LENGTH = 16M
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 50K
+RAM (xrw)      : ORIGIN = 0x10000000, LENGTH = 50K
 }
 
 __cs3_stack = ORIGIN(RAM) + LENGTH(RAM);
@@ -35,19 +35,21 @@ SECTIONS
 {
   . = ORIGIN(FLASH);
 
+  /*
   .interrupt_vector :
   {
     . = ORIGIN(FLASH);
     . = ALIGN(4);
-    KEEP(*(.interrupt_vector)) /* Startup code */
+    KEEP(*(.interrupt_vector))
     . = ALIGN(4);
   } >FLASH
+  */
 
   /* The program code and other data goes into FLASH */
   .text :
   {
     . = ALIGN(4);
-    KEEP(*(.interrupt_vector)) /* Startup code */
+    KEEP(*(.interrupt_vector))
     KEEP(*(.text))           /* .text sections (code) */
     KEEP(*(.text*))          /* .text* sections (code) */
     *(.glue_7)         /* glue arm to thumb code */

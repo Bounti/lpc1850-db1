@@ -242,12 +242,12 @@ getPC:
   .end
 
 
-/*
-// <h> Stack Configuration
-//   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
-// </h>
-*/
-
+///*
+//// <h> Stack Configuration
+////   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+//// </h>
+//*/
+//
 //    .equ    Stack_Size, 0x00000100
 //    .equ    Sign_Value, 0x5A5A5A5A
 //    .section ".stack", "w"
@@ -260,18 +260,17 @@ getPC:
 //    .endif
 //    .size   __cs3_stack_mem,  . - __cs3_stack_mem
 //    .set    __cs3_stack_size, . - __cs3_stack_mem
-
-
-/*
-// <h> Heap Configuration
-//   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
-// </h>
-*/
-
+//
+//
+///*
+//// <h> Heap Configuration
+////   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+//// </h>
+//*/
+//
 //    .equ    Heap_Size,  0x00001000
-
 //    .section ".heap", "w"
-//   .align  3
+//    .align  3
 //    .globl  __cs3_heap_start
 //    .globl  __cs3_heap_end
 //__cs3_heap_start:
