@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.8)
 
 function(download_file url filename hash_type hash)
 if(NOT EXISTS ${filename})
