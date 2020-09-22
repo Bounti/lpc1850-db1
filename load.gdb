@@ -1,7 +1,6 @@
 target remote localhost:2331
 
-file ./build/baremetal.ButtonsLedsSimple
-
+file ./build/baremetal.GPIO_Interrupts
 load
 
 monitor halt

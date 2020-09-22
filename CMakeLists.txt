@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.8)
 
+function(lpc_add_component target_name files)
+  add_executable("${PROJECT_NAME}.${target_name}"    ${files})
+  target_include_directories("${PROJECT_NAME}.${target_name}" PUBLIC "${EXAMPLES_DIR}/${target_name}")
+  target_link_libraries("${PROJECT_NAME}.${target_name}"      LPC_CORE)
+  target_link_libraries("${PROJECT_NAME}.${target_name}"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
+  set_property(TARGET "${PROJECT_NAME}.${target_name}"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
+endfunction()
+
 function(download_file url filename hash_type hash)
 if(NOT EXISTS ${filename})
   file(DOWNLOAD ${url} ${filename}
@@ -10,12 +18,18 @@ endif()
 endfunction(download_file)
 
 # project name
-project(baremetal)
+ project(baremetal)
 
 # download lpc1850-db1 software example
-download_file(https://diolan.com/media/wysiwyg/downloads/lpc1800-demos.zip ./lpc1800-demos.zip SHA1 b388fc1b7b2f9e2d968300968ffbf0cb17d3858b)
-file(ARCHIVE_EXTRACT INPUT ./lpc1800-demos.zip)
-file(REMOVE ./build/LPC1800-demos/Drivers/source/sdio.c)
+IF(NOT EXISTS ./lpc1800-demos)
+	download_file(https://diolan.com/media/wysiwyg/downloads/lpc1800-demos.zip ./lpc1800-demos.zip SHA1 b388fc1b7b2f9e2d968300968ffbf0cb17d3858b)
+	file(ARCHIVE_EXTRACT INPUT ./lpc1800-demos.zip)
+	file(REMOVE ./build/LPC1800-demos/Drivers/source/sdio.c)
+endif()
+
+execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/EMAC/emac/g'")
+execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/lpc18xx.h/LPC18xx.h/g'")
+execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/WebPage/webpage/g'")
 
 # enable assembly support
 enable_language(ASM)
@@ -29,10 +43,12 @@ set(LINKER_SCRIPT "_flash.ld")
 set(CPU_OPTIONS -mthumb -mcpu=cortex-m3)
 
 # optimizations (-O0 -O1 -O2 -O3 -Os -Ofast -Og -flto)
-set(CMAKE_C_FLAGS_DEBUG "-Og -g3 -DDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g3")
-set(CMAKE_C_FLAGS_RELEASE "-Os -flto")
-set(CMAKE_CXX_FLAGS_RELEASE "-Os -flto")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
+set(CMAKE_C_FLAGS_RELEASE "-O0 -g3")
+#"-Os -flto")
+set(CMAKE_CXX_FLAGS_RELEASE "-O0 -g3")
+#"-Os -flto")
 
 add_definitions(
   -DCORE_M3
@@ -44,13 +60,12 @@ add_definitions(
 
 add_compile_options(
     ${CPU_OPTIONS}
-    -ffreestanding
-    -ffunction-sections
-    -fdata-sections
     -fno-builtin
+    -ffreestanding
     -std=gnu11
-    -mfloat-abi=softfp
+    #-mfloat-abi=softfp
     -fomit-frame-pointer
+    -nostdlib
 )
 
 include_directories("./build/LPC1800-demos/Drivers/include")
@@ -75,8 +90,19 @@ file(GLOB SOURCES ./build/LPC1800-demos/Core/Device/NXP/LPC18xx/Source/Templates
     ./syscalls.c
 )
 
+# set properties for startup file
 set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3")
 
+# create LPC_CORE library linked with all examples
+add_library(LPC_CORE STATIC ${SOURCES})
+
+# set compile options for LPC_CORE
+target_compile_options(LPC_CORE PUBLIC ${CPU_OPTIONS})
+
+set(EXAMPLES_DIR "./build/LPC1800-demos/Examples/")
+
+#AUX_SOURCE_DIRECTORY(./build/LPC1800-demos/Examples/Web W_SRC)
+#file(GLOB_RECURSE W_SRC ${EXAMPLES_DIR}/Web/*.c ${EXAMPLES_DIR}/Web/easyweb/*.c)
 file(GLOB ADC_SRC  ./build/LPC1800-demos/Examples/ADC/*.c)
 file(GLOB BLS_SRC  ./build/LPC1800-demos/Examples/ButtonsLedsSimple/*.c)
 file(GLOB CD_SRC   ./build/LPC1800-demos/Examples/CombinedDemo/*.c ./build/LPC1800-demos/Examples/CombinedDemo/usbd/*.c ./build/LPC1800-demos/Examples/CombinedDemo/easyweb/*.c)
@@ -88,58 +114,22 @@ file(GLOB LCDE_SRC ./build/LPC1800-demos/Examples/LCD_ExtSDRAM/*.c)
 file(GLOB ST_SRC   ./build/LPC1800-demos/Examples/SDRAM_Test/*.c)
 file(GLOB SDF_SRC  ./build/LPC1800-demos/Examples/SPI_DataFlash/*.c)
 file(GLOB UHR_SRC  ./build/LPC1800-demos/Examples/USB_ROM_HIDmouse/*.c)
-file(GLOB W_SRC   ./build/LPC1800-demos/Examples/Web/*.c ./build/LPC1800-demos/Examples/Web/easyweb/*.c)
 
-#add_executable("${PROJECT_NAME}.ADC"               ${SOURCES}  ${ADC_SRC})
-add_executable("${PROJECT_NAME}.ButtonsLedsSimple" ${SOURCES}  ${BLS_SRC})  
-#add_executable("${PROJECT_NAME}.CombinedDemo"      ${SOURCES}  ${CD_SRC}) 
-#add_executable("${PROJECT_NAME}.GPIO_Interrupts"   ${SOURCES}  ${GI_SRC}) 
-#add_executable("${PROJECT_NAME}.HDMI"              ${SOURCES}  ${H_SRC}) 
-#add_executable("${PROJECT_NAME}.I2C_EEPROM"        ${SOURCES}  ${IE_SRC}) 
-#add_executable("${PROJECT_NAME}.LCD"               ${SOURCES}  ${LCD_SRC}) 
-#add_executable("${PROJECT_NAME}.LCD_ExtSDRAM"      ${SOURCES}  ${LCDE_SRC}) 
-#add_executable("${PROJECT_NAME}.SDRAM_Test"        ${SOURCES}  ${ST_SRC}) 
-#add_executable("${PROJECT_NAME}.SPI_DataFlash"     ${SOURCES}  ${SDF_SRC}) 
-#add_executable("${PROJECT_NAME}.USB_ROM_HIDmouse"  ${SOURCES}  ${UHR_SRC})
-#add_executable("${PROJECT_NAME}.Web"               ${SOURCES}  ${W_SRC}) 
+function(create_list relative_path)
+  execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR} -type f -name '*.c' | grep '${relative_path}' | tr '\n' ' '" OUTPUT_VARIABLE TMP)
+  #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep '${relative_path}' | awk -F. '{print $2}' | tr '\n' ' '" OUTPUT_VARIABLE TMP)
+  #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep 'Web' | tr '\n' ' ' | awk '{gsub(\" \",\"\", $0); print $0, \"\"}'" OUTPUT_VARIABLE TMP)
+  separate_arguments(TMP UNIX_COMMAND ${TMP})
+  set(SOURCES ${TMP} PARENT_SCOPE)
+endfunction()
 
-#target_include_directories("${PROJECT_NAME}.ADC"               PUBLIC "./build/LPC1800-demos/Examples/ADC")
-target_include_directories("${PROJECT_NAME}.ButtonsLedsSimple" PUBLIC "./build/LPC1800-demos/Examples/ButtonsLedsSimple") 
-#target_include_directories("${PROJECT_NAME}.CombinedDemo"      PUBLIC "./build/LPC1800-demos/Examples/CombinedDemo")
-#target_include_directories("${PROJECT_NAME}.GPIO_Interrupts"   PUBLIC "./build/LPC1800-demos/Examples/GPIO_Interrupts")
-#target_include_directories("${PROJECT_NAME}.HDMI"              PUBLIC "./build/LPC1800-demos/Examples/HDMI")
-#target_include_directories("${PROJECT_NAME}.I2C_EEPROM"        PUBLIC "./build/LPC1800-demos/Examples/I2C_EEPROM")
-#target_include_directories("${PROJECT_NAME}.LCD"               PUBLIC "./build/LPC1800-demos/Examples/LCD")
-#target_include_directories("${PROJECT_NAME}.LCD_ExtSDRAM"      PUBLIC "./build/LPC1800-demos/Examples/LCD_ExtSDRAM") 
-#target_include_directories("${PROJECT_NAME}.SDRAM_Test"        PUBLIC "./build/LPC1800-demos/Examples/SDRAM_Test")
-#target_include_directories("${PROJECT_NAME}.SPI_DataFlash"     PUBLIC "./build/LPC1800-demos/Examples/SPI_DataFlash") 
-#target_include_directories("${PROJECT_NAME}.USB_ROM_HIDmouse"  PUBLIC "./build/LPC1800-demos/Examples/USB_ROM_HIDmouse")
-#target_include_directories("${PROJECT_NAME}.Web"               PUBLIC "./build/LPC1800-demos/Examples/Web")
+message(${PROJECT_SOURCE_DIR})
 
-#target_link_libraries("${PROJECT_NAME}.ADC"               ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-target_link_libraries("${PROJECT_NAME}.ButtonsLedsSimple" ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.CombinedDemo"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.GPIO_Interrupts"   ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.HDMI"              ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.I2C_EEPROM"        ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.LCD"               ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.LCD_ExtSDRAM"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.SDRAM_Test"        ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.SPI_DataFlash"     ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.USB_ROM_HIDmouse"  ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-#target_link_libraries("${PROJECT_NAME}.Web"               ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
-
-#set_property(TARGET "${PROJECT_NAME}.ADC"               PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-set_property(TARGET "${PROJECT_NAME}.ButtonsLedsSimple" PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.CombinedDemo"      PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.GPIO_Interrupts"   PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.HDMI"              PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.I2C_EEPROM"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.LCD"               PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.LCD_ExtSDRAM"      PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.SDRAM_Test"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.SPI_DataFlash"     PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.USB_ROM_HIDmouse"  PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-#set_property(TARGET "${PROJECT_NAME}.Web"               PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
+#create_list("Web")
+#lpc_add_component("Web" ${SOURCES})
+create_list("ButtonsLedsSimple")
+lpc_add_component("ButtonsLedsSimple" ${BLS_SRC})
+create_list("GPIO_Interrupts")
+lpc_add_component("GPIO_Interrupts" ${GI_SRC})
 
 include("./arm-none-eabi.cmake")
