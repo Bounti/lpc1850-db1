@@ -30,6 +30,9 @@ endif()
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/EMAC/emac/g'")
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/lpc18xx.h/LPC18xx.h/g'")
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/WebPage/webpage/g'")
+execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/CGU_Init();/\\/\\/CGU_Init();/g'")
+
+message(${PROJECT_SOURCE_DIR})
 
 # enable assembly support
 enable_language(ASM)
