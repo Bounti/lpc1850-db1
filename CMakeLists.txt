@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
 
 function(lpc_add_component target_name files)
-  add_executable("${PROJECT_NAME}.${target_name}"    ${files})
+  add_executable("${PROJECT_NAME}.${target_name}"    ${files} ./startup_LPC18xx.s)
   target_include_directories("${PROJECT_NAME}.${target_name}" PUBLIC "${EXAMPLES_DIR}/${target_name}")
   target_link_libraries("${PROJECT_NAME}.${target_name}"      LPC_CORE)
   target_link_libraries("${PROJECT_NAME}.${target_name}"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
   set_property(TARGET "${PROJECT_NAME}.${target_name}"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
+
+  # set properties for startup file
+  set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3")
 endfunction()
 
 function(download_file url filename hash_type hash)
@@ -31,6 +34,7 @@ execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/EMAC/
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/lpc18xx.h/LPC18xx.h/g'")
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/WebPage/webpage/g'")
 execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/CGU_Init();/\\/\\/CGU_Init();/g'")
+execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/SystemInit();/\\/\\/SystemInit();/g'")
 
 message(${PROJECT_SOURCE_DIR})
 
@@ -88,13 +92,9 @@ link_directories(
 
 file(GLOB SOURCES ./build/LPC1800-demos/Core/Device/NXP/LPC18xx/Source/Templates/*.c
     ./build/LPC1800-demos/Drivers/source/*.c
-    ./startup_LPC18xx.s
     ./build/LPC1800-demos/Boards/syscalls.c
     ./syscalls.c
 )
-
-# set properties for startup file
-set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3")
 
 # create LPC_CORE library linked with all examples
 add_library(LPC_CORE STATIC ${SOURCES})
@@ -123,6 +123,7 @@ function(create_list relative_path)
   #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep '${relative_path}' | awk -F. '{print $2}' | tr '\n' ' '" OUTPUT_VARIABLE TMP)
   #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep 'Web' | tr '\n' ' ' | awk '{gsub(\" \",\"\", $0); print $0, \"\"}'" OUTPUT_VARIABLE TMP)
   separate_arguments(TMP UNIX_COMMAND ${TMP})
+  #list(APPEND TMP "./startup_LPC18xx.s")
   set(SOURCES ${TMP} PARENT_SCOPE)
 endfunction()
 
@@ -130,9 +131,13 @@ message(${PROJECT_SOURCE_DIR})
 
 #create_list("Web")
 #lpc_add_component("Web" ${SOURCES})
+
 create_list("ButtonsLedsSimple")
+message(${BLS_SRC})
 lpc_add_component("ButtonsLedsSimple" ${BLS_SRC})
+
 create_list("GPIO_Interrupts")
+message(${GI_SRC})
 lpc_add_component("GPIO_Interrupts" ${GI_SRC})
 
 include("./arm-none-eabi.cmake")
