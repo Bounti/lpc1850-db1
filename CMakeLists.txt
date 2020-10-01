@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.8)
 
-function(lpc_add_component target_name files)
-  add_executable("${PROJECT_NAME}.${target_name}"    ${files} ./startup_LPC18xx.s)
+# Option for DMon or Inception
+option(DMon "Automated source-code path for DMon" OFF)
+option(Inception "Automated source-code path for Inception" OFF)
+
+function(lpc_add_component target_name p_files)
+  add_executable("${PROJECT_NAME}.${target_name}" ${p_files} ./startup_LPC18xx.s)
   target_include_directories("${PROJECT_NAME}.${target_name}" PUBLIC "${EXAMPLES_DIR}/${target_name}")
   target_link_libraries("${PROJECT_NAME}.${target_name}"      LPC_CORE)
   target_link_libraries("${PROJECT_NAME}.${target_name}"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
   set_property(TARGET "${PROJECT_NAME}.${target_name}"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
-
   # set properties for startup file
   set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3")
 endfunction()
@@ -33,10 +36,11 @@ endif()
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/EMAC/emac/g'")
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/lpc18xx.h/LPC18xx.h/g'")
 execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/WebPage/webpage/g'")
-execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/CGU_Init();/\\/\\/CGU_Init();/g'")
-execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/SystemInit();/\\/\\/SystemInit();/g'")
 
-message(${PROJECT_SOURCE_DIR})
+if(DMon OR Inception)
+  execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/CGU_Init();/\\/\\/CGU_Init();/g'")
+  execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/SystemInit();/\\/\\/SystemInit();/g'")
+endif()
 
 # enable assembly support
 enable_language(ASM)
@@ -104,40 +108,23 @@ target_compile_options(LPC_CORE PUBLIC ${CPU_OPTIONS})
 
 set(EXAMPLES_DIR "./build/LPC1800-demos/Examples/")
 
-#AUX_SOURCE_DIRECTORY(./build/LPC1800-demos/Examples/Web W_SRC)
-#file(GLOB_RECURSE W_SRC ${EXAMPLES_DIR}/Web/*.c ${EXAMPLES_DIR}/Web/easyweb/*.c)
-file(GLOB ADC_SRC  ./build/LPC1800-demos/Examples/ADC/*.c)
-file(GLOB BLS_SRC  ./build/LPC1800-demos/Examples/ButtonsLedsSimple/*.c)
-file(GLOB CD_SRC   ./build/LPC1800-demos/Examples/CombinedDemo/*.c ./build/LPC1800-demos/Examples/CombinedDemo/usbd/*.c ./build/LPC1800-demos/Examples/CombinedDemo/easyweb/*.c)
-file(GLOB GI_SRC   ./build/LPC1800-demos/Examples/GPIO_Interrupts/*.c)
-file(GLOB H_SRC    ./build/LPC1800-demos/Examples/HDMI/*.c)
-file(GLOB IE_SRC   ./build/LPC1800-demos/Examples/I2C_EEPROM/*.c)
-file(GLOB LCD_SRC  ./build/LPC1800-demos/Examples/LCD/*.c)
-file(GLOB LCDE_SRC ./build/LPC1800-demos/Examples/LCD_ExtSDRAM/*.c)
-file(GLOB ST_SRC   ./build/LPC1800-demos/Examples/SDRAM_Test/*.c)
-file(GLOB SDF_SRC  ./build/LPC1800-demos/Examples/SPI_DataFlash/*.c)
-file(GLOB UHR_SRC  ./build/LPC1800-demos/Examples/USB_ROM_HIDmouse/*.c)
-
 function(create_list relative_path)
   execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR} -type f -name '*.c' | grep '${relative_path}' | tr '\n' ' '" OUTPUT_VARIABLE TMP)
-  #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep '${relative_path}' | awk -F. '{print $2}' | tr '\n' ' '" OUTPUT_VARIABLE TMP)
-  #execute_process(COMMAND bash -c "find -type f -name '*.c' | grep 'Web' | tr '\n' ' ' | awk '{gsub(\" \",\"\", $0); print $0, \"\"}'" OUTPUT_VARIABLE TMP)
-  separate_arguments(TMP UNIX_COMMAND ${TMP})
-  #list(APPEND TMP "./startup_LPC18xx.s")
-  set(SOURCES ${TMP} PARENT_SCOPE)
+  separate_arguments(TMP2 UNIX_COMMAND ${TMP})
+  foreach(p_file IN LISTS TMP2)
+    list(APPEND TMP3 ${p_file})
+  endforeach()
+  #separate_arguments(TMP UNIX_COMMAND ${TMP})
+  set(SOURCES ${TMP3} PARENT_SCOPE)
 endfunction()
 
-message(${PROJECT_SOURCE_DIR})
-
-#create_list("Web")
-#lpc_add_component("Web" ${SOURCES})
-
 create_list("ButtonsLedsSimple")
-message(${BLS_SRC})
-lpc_add_component("ButtonsLedsSimple" ${BLS_SRC})
+lpc_add_component("ButtonsLedsSimple" "${SOURCES}")
 
 create_list("GPIO_Interrupts")
-message(${GI_SRC})
-lpc_add_component("GPIO_Interrupts" ${GI_SRC})
+lpc_add_component("GPIO_Interrupts" "${SOURCES}")
+
+create_list("Web")
+lpc_add_component("Web" "${SOURCES}")
 
 include("./arm-none-eabi.cmake")
