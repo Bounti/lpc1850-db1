@@ -1,10 +1,8 @@
-target remote localhost:2331
-
-file ./build/baremetal.GPIO_Interrupts
-load
-
+target remote localhost:3000
 monitor halt
-
-set $pc=0x1c000115
-
-#continue
+file ./build/baremetal.multithreads
+load
+set $pc=Reset_Handler
+b main
+add-symbol-file ~/Projects/dmon/build/top.sdk/app/Debug/app.elf 0x100000
+continue
