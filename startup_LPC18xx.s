@@ -99,18 +99,18 @@ isr_vector:
     .weak Reset_Handler
     .type   Reset_Handler, %function
 Reset_Handler:
-//    MOV     R0, #0
-//    LDR     R1, =__bss_start__
-//    LDR     R2, =__bss_end__
-//    CMP     R1,R2
-//    BEQ     BSSIsEmpty
-//    LoopZI:
-//    CMP     R1, R2
-//    BHS		BSSIsEmpty
-//    STR   	R0, [R1]
-//    ADD		R1, #4
-//    BLO     LoopZI
-//    BSSIsEmpty:
+    MOV     R0, #0
+    LDR     R1, =__bss_start__
+    LDR     R2, =__bss_end__
+    CMP     R1,R2
+    BEQ     BSSIsEmpty
+    LoopZI:
+    CMP     R1, R2
+    BHS		BSSIsEmpty
+    STR   	R0, [R1]
+    ADD		R1, #4
+    BLO     LoopZI
+    BSSIsEmpty:
     LDR     R0,=main
     BX      R0
   .size   Reset_Handler,.-Reset_Handler
