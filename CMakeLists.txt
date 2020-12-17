@@ -39,7 +39,7 @@ execute_process(COMMAND bash -c "find -type f -print0 | xargs -0 sed -i 's/WebPa
 
 if(DMon OR Inception)
   execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/CGU_Init();/\\/\\/CGU_Init();/g'")
-  execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/SystemInit();/\\/\\/SystemInit();/g'")
+  #execute_process(COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/build/LPC1800-demos/Examples -name '*.c' -print0 | xargs -0 sed -i 's/SystemInit();/\\/\\/SystemInit();/g'")
 endif()
 
 # enable assembly support
@@ -126,5 +126,14 @@ lpc_add_component("GPIO_Interrupts" "${SOURCES}")
 
 create_list("Web")
 lpc_add_component("Web" "${SOURCES}")
+
+create_list("IRQ")
+lpc_add_component("IRQ" "${SOURCES}")
+
+create_list("Examples/SysTick")
+lpc_add_component("SysTick" "${SOURCES}")
+
+create_list("multithreads")
+lpc_add_component("multithreads" "${SOURCES}")
 
 include("./arm-none-eabi.cmake")
