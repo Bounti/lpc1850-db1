@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
+include("./arm-none-eabi.cmake")
+
 # Option for DMon or Inception
 option(DMon "Automated source-code path for DMon" OFF)
 option(Inception "Automated source-code path for Inception" OFF)
@@ -11,7 +13,7 @@ function(lpc_add_component target_name p_files)
   target_link_libraries("${PROJECT_NAME}.${target_name}"      ${CPU_OPTIONS} -T${LINKER_SCRIPT} -nostartfiles -fno-builtin -mfloat-abi=softfp -nostdlib -lnosys)
   set_property(TARGET "${PROJECT_NAME}.${target_name}"        PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})
   # set properties for startup file
-  set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3")
+  set_source_files_properties(./startup_LPC18xx.s PROPERTIES COMPILE_FLAGS "-mthumb -mcpu=cortex-m3 -march=armv7-m")
 endfunction()
 
 function(download_file url filename hash_type hash)
@@ -51,7 +53,7 @@ set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)
 set(LINKER_SCRIPT "_flash.ld")
 
 # define CPU OPTIONS
-set(CPU_OPTIONS -mthumb -mcpu=cortex-m3)
+set(CPU_OPTIONS -mcpu=cortex-m3 -mthumb -march=armv7-m)
 
 # optimizations (-O0 -O1 -O2 -O3 -Os -Ofast -Og -flto)
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g3 -DDEBUG")
@@ -127,13 +129,8 @@ lpc_add_component("GPIO_Interrupts" "${SOURCES}")
 create_list("Web")
 lpc_add_component("Web" "${SOURCES}")
 
-create_list("IRQ")
-lpc_add_component("IRQ" "${SOURCES}")
-
-create_list("Examples/SysTick")
+create_list("SysTick")
 lpc_add_component("SysTick" "${SOURCES}")
 
 create_list("multithreads")
 lpc_add_component("multithreads" "${SOURCES}")
-
-include("./arm-none-eabi.cmake")
